@@ -1,0 +1,46 @@
+-------
+
+1 # Velero Install 
+
+./velero12 install --provider aws --plugins velero/velero-plugin-for-aws:v1.0.0 --bucket velero --secret-file ./credentials-velero --use-volume-snapshots=false --use-restic --backup-location-config region=minio,s3ForcePathStyle="true",s3Url=http://10.10.20.139:9000
+
+
+ANNOTATE 
+
+kubectl -n guestbook-ns   annotate pod/redis-master-8bfb75f8d-vkssf  backup.velero.io/backup-volumes=redis-master-data
+kubectl -n guestbook-ns   annotate pod/redis-slave-779b6d8f79-jz6tm  backup.velero.io/backup-volumes=redis-slave-data
+
+VIEW guestPVC Claim
+
+
+2 # Velero take backup of Redis-Guestbook app 
+
+./velero12 backup create gustbook-redis-bkp --include-namespace=guestbook-ns
+
+3 # Velero do restore for Redis-Guestbook app
+
+./velero12 restore create --from-backup gustbook-redis-bkp
+
+4 # check Velero backup 
+
+ ./velero12 get  backup
+
+NAME                 STATUS      CREATED                         EXPIRES   STORAGE LOCATION   SELECTOR
+gustbook-redis-bkp   Completed   2020-04-29 10:38:45 +0000 UTC   23d       default            <none>
+nginx-bkp-velero12   Completed   2020-04-29 10:06:28 +0000 UTC   23d       default            app=nginx
+
+CHECK 
+./velero12 backup describe gustbook-redis-bkp --details
+
+5 # check Velero restore 
+
+./velero12 get restore
+
+NAME                                BACKUP               STATUS      WARNINGS   ERRORS   CREATED                         SELECTOR
+gustbook-redis-bkp-20200429110040   gustbook-redis-bkp   Completed   0          0        2020-04-29 11:01:34 +0000 UTC   <none>
+nginx-bkp-velero12-20200429101008   nginx-bkp-velero12   Completed   0          0        2020-04-29 10:11:02 +0000 UTC   <none>
+
+6. RESTORE FINALLY
+
+./velero12 restore create --from-backup gustbook-redis-bkp
+
